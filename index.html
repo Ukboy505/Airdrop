@@ -89,6 +89,14 @@
             border-radius: 5px;
             text-align: left;
         }
+        #debug {
+            margin: 20px;
+            padding: 10px;
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+        }
         @media (max-width: 600px) {
             .recipient-row {
                 flex-direction: column;
@@ -101,118 +109,41 @@
 </head>
 <body>
     <div id="root"></div>
+    <div id="debug"></div>
     <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/react-router-dom@6.3.0/umd/react-router-dom.min.js"></script>
-    <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+    <script src="https://unpkg.com/web3@1.10.4/dist/web3.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script type="text/babel">
         const { useState, useEffect } = React;
         const { BrowserRouter, Route, Routes, Link } = ReactRouterDOM;
-        const { ethers } = window.ethers;
+        const Web3 = window.Web3;
+
+        // Debug logging
+        function logDebug(message) {
+            const debugDiv = document.getElementById('debug');
+            debugDiv.innerHTML += `<p>${new Date().toLocaleTimeString()} - ${message}</p>`;
+        }
+
+        // Hardcoded contract address (replace with your Polygon Amoy address)
+        const CONTRACT_ADDRESS = "0xYourContractAddressHere"; // Replace with your actual address
 
         const AirdropABI = [
-            {
-                "inputs": [{"internalType": "address", "name": "tokenAddress", "type": "address"}],
-                "stateMutability": "nonpayable",
-                "type": "constructor"
-            },
-            {
-                "anonymous": false,
-                "inputs": [{"indexed": false, "internalType": "address", "name": "account", "type": "address"}],
-                "name": "Paused",
-                "type": "event"
-            },
-            {
-                "anonymous": false,
-                "inputs": [
-                    {"indexed": false, "internalType": "address[]", "name": "hunters", "type": "address[]"},
-                    {"indexed": false, "internalType": "uint256[]", "name": "amounts", "type": "uint256[]"}
-                ],
-                "name": "Success",
-                "type": "event"
-            },
-            {
-                "anonymous": false,
-                "inputs": [{"indexed": false, "internalType": "address", "name": "account", "type": "address"}],
-                "name": "Unpaused",
-                "type": "event"
-            },
-            {
-                "anonymous": false,
-                "inputs": [
-                    {"indexed": true, "internalType": "address", "name": "owner", "type": "address"},
-                    {"indexed": true, "internalType": "uint256", "name": "amount", "type": "uint256"}
-                ],
-                "name": "Withdrawn",
-                "type": "event"
-            },
-            {
-                "inputs": [
-                    {"internalType": "address[]", "name": "hunters", "type": "address[]"},
-                    {"internalType": "uint256[]", "name": "amounts", "type": "uint256[]"}
-                ],
-                "name": "airdrop",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "getBalance",
-                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "owner",
-                "outputs": [{"internalType": "address", "name": "", "type": "address"}],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "pause",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "paused",
-                "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "token",
-                "outputs": [{"internalType": "contract IERC20", "name": "", "type": "address"}],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "totalDistributed",
-                "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-                "stateMutability": "view",
-                "type": "function"
-            },
-            {
-                "inputs": [],
-                "name": "unpause",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            },
-            {
-                "inputs": [{"internalType": "uint256", "name": "_amount", "type": "uint256"}],
-                "name": "withdraw",
-                "outputs": [],
-                "stateMutability": "nonpayable",
-                "type": "function"
-            }
+            {"inputs":[{"internalType":"address","name":"tokenAddress","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},
+            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"address","name":"account","type":"address"}],"name":"Paused","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"address[]","name":"hunters","type":"address[]"},{"indexed":false,"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"name":"Success","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"address","name":"account","type":"address"}],"name":"Unpaused","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"Withdrawn","type":"event"},
+            {"inputs":[{"internalType":"address[]","name":"hunters","type":"address[]"},{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"name":"airdrop","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[],"name":"getBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"pause","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[],"name":"paused","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"token","outputs":[{"internalType":"contract IERC20","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"totalDistributed","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"unpause","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"_amount","type":"uint256"}],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}
         ];
 
         const ERC20ABI = [
@@ -222,7 +153,7 @@
         ];
 
         // AirdropTable Component
-        const AirdropTable = ({ provider, contract, contractBalance, setTxStatus }) => {
+        const AirdropTable = ({ web3, contract, contractBalance, setTxStatus }) => {
             const [recipients, setRecipients] = useState([{ address: '', amount: '' }]);
 
             const addRecipient = () => setRecipients([...recipients, { address: '', amount: '' }]);
@@ -238,19 +169,19 @@
             const handleAirdrop = async () => {
                 if (!contract) return alert('Connect to contract first!');
                 const hunters = recipients.map(r => r.address);
-                const amounts = recipients.map(r => ethers.utils.parseEther(r.amount || '0'));
+                const amounts = recipients.map(r => web3.utils.toWei(r.amount || '0', 'ether'));
                 const total = calculateTotal();
                 if (total > parseFloat(contractBalance)) return alert('Total exceeds contract balance!');
-                if (hunters.some(h => !ethers.utils.isAddress(h))) return alert('Invalid address detected!');
+                if (hunters.some(h => !web3.utils.isAddress(h))) return alert('Invalid address detected!');
                 try {
                     setTxStatus('Pending...');
-                    const tx = await contract.airdrop(hunters, amounts);
-                    const receipt = await tx.wait();
-                    const block = await provider.getBlock(receipt.blockNumber);
-                    const explorerLink = `https://etherscan.io/tx/${tx.hash}`;
-                    setTxStatus(`Success! Tx: ${tx.hash} at ${new Date(block.timestamp * 1000).toLocaleString()} - <a href="${explorerLink}" target="_blank">View on Etherscan</a>`);
+                    const accounts = await web3.eth.getAccounts();
+                    const tx = await contract.methods.airdrop(hunters, amounts).send({ from: accounts[0] });
+                    setTxStatus(`Success! Tx: ${tx.transactionHash} at ${new Date().toLocaleString()} - <a href="https://amoy.polygonscan.com/tx/${tx.transactionHash}" target="_blank">View on Polygonscan</a>`);
+                    logDebug("Airdrop successful: " + tx.transactionHash);
                 } catch (error) {
                     setTxStatus('Failed: ' + error.message);
+                    logDebug("Airdrop error: " + error.message);
                 }
             };
 
@@ -281,66 +212,47 @@
         };
 
         // HomePage Component
-        const HomePage = ({
-            provider, signer, contractAddress, setContractAddress, contract, setContract,
-            tokenContract, setTokenContract, tokenName, setTokenName, tokenSymbol, setTokenSymbol,
-            contractBalance, setContractBalance, totalDistributed, setTotalDistributed,
-            isPaused, setIsPaused, connected, setConnected
-        }) => {
+        const HomePage = ({ web3, contract, tokenContract, tokenName, setTokenName, tokenSymbol, setTokenSymbol, contractBalance, setContractBalance, totalDistributed, setTotalDistributed, isPaused, setIsPaused, connected, setConnected }) => {
             const connectToContract = async () => {
-                if (!provider || !signer) return alert('Please connect your wallet first!');
+                if (!web3) return alert('Please connect your wallet first!');
                 try {
-                    const contractInstance = new ethers.Contract(contractAddress, AirdropABI, signer);
-                    setContract(contractInstance);
-                    const tokenAddress = await contractInstance.token();
-                    const tokenInstance = new ethers.Contract(tokenAddress, ERC20ABI, signer);
-                    setTokenContract(tokenInstance);
+                    const accounts = await web3.eth.getAccounts();
+                    const contractInstance = new web3.eth.Contract(AirdropABI, CONTRACT_ADDRESS);
+                    const tokenAddress = await contractInstance.methods.token().call();
+                    const tokenInstance = new web3.eth.Contract(ERC20ABI, tokenAddress);
 
                     const [name, symbol, balance, total, paused] = await Promise.all([
-                        tokenInstance.name(),
-                        tokenInstance.symbol(),
-                        contractInstance.getBalance(),
-                        contractInstance.totalDistributed(),
-                        contractInstance.paused()
+                        tokenInstance.methods.name().call(),
+                        tokenInstance.methods.symbol().call(),
+                        contractInstance.methods.getBalance().call(),
+                        contractInstance.methods.totalDistributed().call(),
+                        contractInstance.methods.paused().call()
                     ]);
 
+                    setContract(contractInstance);
+                    setTokenContract(tokenInstance);
                     setTokenName(name);
                     setTokenSymbol(symbol);
-                    setContractBalance(ethers.utils.formatEther(balance));
-                    setTotalDistributed(ethers.utils.formatEther(total));
+                    setContractBalance(web3.utils.fromWei(balance, 'ether'));
+                    setTotalDistributed(web3.utils.fromWei(total, 'ether'));
                     setIsPaused(paused);
                     setConnected(true);
 
-                    contractInstance.on("Success", () => updateContractData());
-                    contractInstance.on("Paused", () => setIsPaused(true));
-                    contractInstance.on("Unpaused", () => setIsPaused(false));
-                    contractInstance.on("Withdrawn", () => updateContractData());
+                    logDebug("Contract connected: " + CONTRACT_ADDRESS);
                 } catch (error) {
                     alert("Error connecting to contract: " + error.message);
+                    logDebug("Contract connection error: " + error.message);
                 }
             };
 
-            const updateContractData = async () => {
-                if (contract) {
-                    const balance = await contract.getBalance();
-                    const total = await contract.totalDistributed();
-                    const paused = await contract.paused();
-                    setContractBalance(ethers.utils.formatEther(balance));
-                    setTotalDistributed(ethers.utils.formatEther(total));
-                    setIsPaused(paused);
-                }
-            };
+            useEffect(() => {
+                if (web3 && !connected) connectToContract();
+            }, [web3]);
 
             return (
                 <div className="home-page">
-                    <h2>Connect to Airdrop Contract</h2>
-                    <input 
-                        type="text" 
-                        placeholder="Enter contract address" 
-                        value={contractAddress} 
-                        onChange={(e) => setContractAddress(e.target.value)} 
-                    />
-                    <button onClick={connectToContract}>Connect to Contract</button>
+                    <h2>Airdrop Contract Info (Polygon Amoy)</h2>
+                    <p>Contract Address: {CONTRACT_ADDRESS}</p>
                     {connected && (
                         <div className="contract-info">
                             <p>Token Name: {tokenName}</p>
@@ -355,40 +267,48 @@
         };
 
         // OwnerPanel Component
-        const OwnerPanel = ({ provider, signer, contract, tokenContract, contractBalance, isPaused, userAddress }) => {
+        const OwnerPanel = ({ web3, contract, tokenContract, contractBalance, isPaused, userAddress }) => {
             const [withdrawAmount, setWithdrawAmount] = useState('');
             const [txStatus, setTxStatus] = useState('');
 
             const checkOwner = async () => {
                 if (!contract || !userAddress) return false;
-                const owner = await contract.owner();
-                return owner.toLowerCase() === userAddress.toLowerCase();
+                try {
+                    const owner = await contract.methods.owner().call();
+                    return owner.toLowerCase() === userAddress.toLowerCase();
+                } catch (error) {
+                    logDebug("Check owner error: " + error.message);
+                    return false;
+                }
             };
 
             const handlePause = async () => {
+                if (!contract) return alert('Connect to contract first!');
                 try {
                     setTxStatus('Pending...');
-                    const tx = isPaused ? await contract.unpause() : await contract.pause();
-                    const receipt = await tx.wait();
-                    const block = await provider.getBlock(receipt.blockNumber);
-                    const explorerLink = `https://etherscan.io/tx/${tx.hash}`;
-                    setTxStatus(`Success! Tx: ${tx.hash} at ${new Date(block.timestamp * 1000).toLocaleString()} - <a href="${explorerLink}" target="_blank">View on Etherscan</a>`);
+                    const accounts = await web3.eth.getAccounts();
+                    const method = isPaused ? contract.methods.unpause() : contract.methods.pause();
+                    const tx = await method.send({ from: accounts[0] });
+                    setTxStatus(`Success! Tx: ${tx.transactionHash} at ${new Date().toLocaleString()} - <a href="https://amoy.polygonscan.com/tx/${tx.transactionHash}" target="_blank">View on Polygonscan</a>`);
+                    logDebug("Pause toggled: " + tx.transactionHash);
                 } catch (error) {
                     setTxStatus('Failed: ' + error.message);
+                    logDebug("Pause error: " + error.message);
                 }
             };
 
             const handleWithdraw = async () => {
+                if (!contract) return alert('Connect to contract first!');
                 if (!withdrawAmount || parseFloat(withdrawAmount) > parseFloat(contractBalance)) return alert('Invalid amount!');
                 try {
                     setTxStatus('Pending...');
-                    const tx = await contract.withdraw(ethers.utils.parseEther(withdrawAmount));
-                    const receipt = await tx.wait();
-                    const block = await provider.getBlock(receipt.blockNumber);
-                    const explorerLink = `https://etherscan.io/tx/${tx.hash}`;
-                    setTxStatus(`Success! Tx: ${tx.hash} at ${new Date(block.timestamp * 1000).toLocaleString()} - <a href="${explorerLink}" target="_blank">View on Etherscan</a>`);
+                    const accounts = await web3.eth.getAccounts();
+                    const tx = await contract.methods.withdraw(web3.utils.toWei(withdrawAmount, 'ether')).send({ from: accounts[0] });
+                    setTxStatus(`Success! Tx: ${tx.transactionHash} at ${new Date().toLocaleString()} - <a href="https://amoy.polygonscan.com/tx/${tx.transactionHash}" target="_blank">View on Polygonscan</a>`);
+                    logDebug("Withdraw successful: " + tx.transactionHash);
                 } catch (error) {
                     setTxStatus('Failed: ' + error.message);
+                    logDebug("Withdraw error: " + error.message);
                 }
             };
 
@@ -399,7 +319,7 @@
                     <h2>Owner's Panel</h2>
                     <div className="airdrop-management">
                         <h3>Airdrop Management</h3>
-                        <AirdropTable provider={provider} contract={contract} contractBalance={contractBalance} setTxStatus={setTxStatus} />
+                        <AirdropTable web3={web3} contract={contract} contractBalance={contractBalance} setTxStatus={setTxStatus} />
                     </div>
                     <div className="pause-unpause">
                         <h3>Contract Status</h3>
@@ -422,19 +342,20 @@
         };
 
         // UserPanel Component
-        const UserPanel = ({ provider, signer, tokenContract, tokenSymbol }) => {
+        const UserPanel = ({ web3, tokenContract, tokenSymbol }) => {
             const [checkAddress, setCheckAddress] = useState('');
             const [balance, setBalance] = useState('');
 
             const checkBalance = async () => {
                 if (!tokenContract) return alert('Connect to contract first!');
                 try {
-                    const addr = checkAddress || (await signer.getAddress());
-                    if (!ethers.utils.isAddress(addr)) return alert('Invalid address!');
-                    const bal = await tokenContract.balanceOf(addr);
-                    setBalance(ethers.utils.formatEther(bal));
+                    const addr = checkAddress || (await web3.eth.getAccounts())[0];
+                    if (!web3.utils.isAddress(addr)) return alert('Invalid address!');
+                    const bal = await tokenContract.methods.balanceOf(addr).call();
+                    setBalance(web3.utils.fromWei(bal, 'ether'));
                 } catch (error) {
                     alert('Error checking balance: ' + error.message);
+                    logDebug("Balance check error: " + error.message);
                 }
             };
 
@@ -455,9 +376,7 @@
 
         // App Component
         const App = () => {
-            const [provider, setProvider] = useState(null);
-            const [signer, setSigner] = useState(null);
-            const [contractAddress, setContractAddress] = useState('');
+            const [web3, setWeb3] = useState(null);
             const [contract, setContract] = useState(null);
             const [tokenContract, setTokenContract] = useState(null);
             const [tokenName, setTokenName] = useState('');
@@ -471,52 +390,80 @@
             const [walletError, setWalletError] = useState('');
 
             useEffect(() => {
-                // Detect mobile device for tailored instructions
                 const userAgent = navigator.userAgent.toLowerCase();
                 setIsMobile(/mobile|android|iphone|ipad/.test(userAgent));
 
-                // Check for MetaMask (extension or mobile app in-app browser)
                 if (window.ethereum) {
-                    const provider = new ethers.providers.Web3Provider(window.ethereum);
-                    setProvider(provider);
+                    const web3Instance = new Web3(window.ethereum);
+                    setWeb3(web3Instance);
                     window.ethereum.on('accountsChanged', (accounts) => {
                         setUserAddress(accounts[0] || '');
                         setWalletError('');
+                        logDebug("Account changed: " + (accounts[0] || 'None'));
                     });
                     window.ethereum.on('chainChanged', () => window.location.reload());
                 } else {
                     setWalletError(isMobile 
                         ? 'MetaMask not detected. Please open this page in the MetaMask app browser or use the deep link.'
                         : 'MetaMask extension not detected. Please install it from metamask.io.');
+                    logDebug("No MetaMask detected");
                 }
-            }, [isMobile]);
+            }, []);
 
             const connectWallet = async () => {
-                if (provider) {
+                if (web3) {
                     try {
-                        // Attempt to connect via MetaMask (works for both extension and in-app browser)
-                        await provider.send('eth_requestAccounts', []);
-                        const signer = provider.getSigner();
-                        setSigner(signer);
-                        const address = await signer.getAddress();
-                        setUserAddress(address);
+                        await window.ethereum.request({ method: 'eth_requestAccounts' });
+                        const accounts = await web3.eth.getAccounts();
+                        setUserAddress(accounts[0]);
                         setWalletError('');
+
+                        // Switch to Polygon Amoy (chainId: 80002)
+                        const chainId = await web3.eth.getChainId();
+                        if (chainId !== 80002) {
+                            try {
+                                await window.ethereum.request({
+                                    method: 'wallet_switchEthereumChain',
+                                    params: [{ chainId: '0x13882' }]
+                                });
+                            } catch (switchError) {
+                                if (switchError.code === 4902) {
+                                    await window.ethereum.request({
+                                        method: 'wallet_addEthereumChain',
+                                        params: [{
+                                            chainId: '0x13882',
+                                            chainName: 'Polygon Amoy',
+                                            rpcUrls: ['https://rpc-amoy.polygon.technology/'],
+                                            nativeCurrency: {
+                                                name: 'MATIC',
+                                                symbol: 'MATIC',
+                                                decimals: 18
+                                            },
+                                            blockExplorerUrls: ['https://amoy.polygonscan.com/']
+                                        }]
+                                    });
+                                } else {
+                                    throw switchError;
+                                }
+                            }
+                        }
+                        logDebug("Wallet connected: " + accounts[0]);
                     } catch (error) {
                         setWalletError('Failed to connect wallet: ' + error.message);
+                        logDebug("Wallet connection failed: " + error.message);
                     }
                 } else if (isMobile) {
-                    // Deep link for mobile users not in MetaMask browser
                     const currentUrl = window.location.href;
-                    const deepLink = `metamask://dapp/${currentUrl}`;
-                    window.location.href = deepLink;
-                    // Fallback message if deep link fails
+                    window.location.href = `metamask://dapp/${currentUrl}`;
                     setTimeout(() => {
                         if (!window.ethereum) {
                             setWalletError('Deep link failed. Please open this URL in the MetaMask app browser: ' + currentUrl);
+                            logDebug("Deep link failed");
                         }
-                    }, 2000); // Delay to allow redirect
+                    }, 2000);
                 } else {
                     setWalletError('Please install the MetaMask extension from metamask.io and refresh the page.');
+                    logDebug("No Web3 provider detected");
                 }
             };
 
@@ -524,7 +471,7 @@
                 <BrowserRouter>
                     <div className="app">
                         <header>
-                            <h1>Airdrop Contract UI</h1>
+                            <h1>Airdrop Contract UI (Polygon Amoy)</h1>
                             {userAddress ? (
                                 <span>Connected: {userAddress.slice(0, 6)}...{userAddress.slice(-4)}</span>
                             ) : (
@@ -542,7 +489,7 @@
                                                         <li>Paste this URL: <strong>{window.location.href}</strong></li>
                                                         <li>Click "Connect MetaMask" to link your wallet.</li>
                                                     </ol>
-                                                    <p>Or click the buttonabove to try opening MetaMask directly.</p>
+                                                    <p>Or click the button above to try opening MetaMask directly.</p>
                                                 </div>
                                             )}
                                             {!isMobile && (
@@ -560,10 +507,7 @@
                         </nav>
                         <Routes>
                             <Route path="/" element={<HomePage 
-                                provider={provider} 
-                                signer={signer} 
-                                contractAddress={contractAddress} 
-                                setContractAddress={setContractAddress}
+                                web3={web3} 
                                 contract={contract}
                                 setContract={setContract}
                                 tokenContract={tokenContract}
@@ -582,8 +526,7 @@
                                 setConnected={setConnected}
                             />} />
                             <Route path="/owner" element={<OwnerPanel 
-                                provider={provider} 
-                                signer={signer} 
+                                web3={web3} 
                                 contract={contract} 
                                 tokenContract={tokenContract}
                                 contractBalance={contractBalance}
@@ -591,8 +534,7 @@
                                 userAddress={userAddress}
                             />} />
                             <Route path="/user" element={<UserPanel 
-                                provider={provider} 
-                                signer={signer} 
+                                web3={web3} 
                                 tokenContract={tokenContract}
                                 tokenSymbol={tokenSymbol}
                             />} />
@@ -603,6 +545,7 @@
         };
 
         ReactDOM.render(<App />, document.getElementById('root'));
+        logDebug("App rendered");
     </script>
 </body>
 </html>
