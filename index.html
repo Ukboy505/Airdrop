@@ -159,9 +159,8 @@
         </div>
         <div id="user" class="section">
             <h2>User's Panel</h2>
-            <input type="text" id="check-address" placeholder="Enter address (leave blank for connected wallet)">
-            <button onclick="checkBalance()">Check Balance</button>
-            <div id="balance-result"></div>
+            <!-- Removed balance check since no direct token interaction -->
+            <p>Connect your wallet to use owner features if applicable.</p>
         </div>
         <div id="debug"></div>
     </div>
@@ -173,8 +172,8 @@
             debugDiv.innerHTML += `<p>${new Date().toLocaleTimeString()} - ${message}</p>`;
         }
 
-        // Hardcoded contract address (replace with your Polygon Amoy address)
-        const CONTRACT_ADDRESS = "0xa6cf75d2998785f77114f48d7f48804831dccfac"; // Replace with your actual address
+        // Hardcoded contract address
+        const CONTRACT_ADDRESS = "0xa6cf75d2998785f77114f48d7f48804831dccfac";
 
         // Airdrop ABI (full version from your input)
         const AirdropABI = [
@@ -194,13 +193,7 @@
             {"inputs":[{"internalType":"uint256","name":"_amount","type":"uint256"}],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}
         ];
 
-        const ERC20ABI = [
-            "function name() view returns (string)",
-            "function symbol() view returns (string)",
-            "function balanceOf(address) view returns (uint256)"
-        ];
-
-        let web3, contract, tokenContract, userAddress, contractBalance = '0', isPaused = false, tokenSymbol = '';
+        let web3, contract, userAddress, contractBalance = '0', isPaused = false;
 
         // Initialize MetaMask and connect to contract on Polygon Amoy
         document.getElementById('connect-wallet').addEventListener('click', async () => {
@@ -243,28 +236,21 @@
                         }
                     }
 
-                    // Connect to hardcoded ERC20 Airdrop contract
+                    // Connect to hardcoded Airdrop contract
                     contract = new web3.eth.Contract(AirdropABI, CONTRACT_ADDRESS);
-                    const tokenAddress = await contract.methods.token().call();
-                    tokenContract = new web3.eth.Contract(ERC20ABI, tokenAddress);
-                    const [name, symbol, balance, total, paused] = await Promise.all([
-                        tokenContract.methods.name().call(),
-                        tokenContract.methods.symbol().call(),
+                    const [balance, total, paused] = await Promise.all([
                         contract.methods.getBalance().call(),
                         contract.methods.totalDistributed().call(),
                         contract.methods.paused().call()
                     ]);
                     contractBalance = web3.utils.fromWei(balance, 'ether');
                     isPaused = paused;
-                    tokenSymbol = symbol;
 
                     document.getElementById('wallet-status').innerHTML = `<span>Connected: ${userAddress.slice(0, 6)}...${userAddress.slice(-4)}</span>`;
                     document.getElementById('hardcoded-address').textContent = CONTRACT_ADDRESS;
                     document.getElementById('contract-info').innerHTML = `
-                        <p>Token Name: ${name}</p>
-                        <p>Token Symbol: ${symbol}</p>
-                        <p>Contract Balance: ${contractBalance} ${symbol}</p>
-                        <p>Total Distributed: ${web3.utils.fromWei(total, 'ether')} ${symbol}</p>
+                        <p>Contract Balance: ${contractBalance}</p>
+                        <p>Total Distributed: ${web3.utils.fromWei(total, 'ether')}</p>
                         <p>Contract Status: ${paused ? 'Paused' : 'Unpaused'}</p>
                     `;
                     document.getElementById('contract-status').textContent = paused ? 'Paused' : 'Unpaused';
@@ -341,6 +327,14 @@
                 const tx = await contract.methods.airdrop(hunters, amounts).send({ from: userAddress });
                 document.getElementById('tx-status').innerHTML = `Success! Tx: ${tx.transactionHash} at ${new Date().toLocaleString()} - <a href="https://amoy.polygonscan.com/tx/${tx.transactionHash}" target="_blank">View on Polygonscan</a>`;
                 logDebug("Airdrop successful: " + tx.transactionHash);
+                // Update contract balance after airdrop
+                const balance = await contract.methods.getBalance().call();
+                contractBalance = web3.utils.fromWei(balance, 'ether');
+                document.getElementById('contract-info').innerHTML = `
+                    <p>Contract Balance: ${contractBalance}</p>
+                    <p>Total Distributed: ${web3.utils.fromWei(await contract.methods.totalDistributed().call(), 'ether')}</p>
+                    <p>Contract Status: ${isPaused ? 'Paused' : 'Unpaused'}</p>
+                `;
             } catch (error) {
                 document.getElementById('tx-status').textContent = 'Failed: ' + error.message;
                 logDebug("Airdrop error: " + error.message);
@@ -358,6 +352,14 @@
                 document.getElementById('contract-status').textContent = isPaused ? 'Paused' : 'Unpaused';
                 document.getElementById('tx-status').innerHTML = `Success! Tx: ${tx.transactionHash} at ${new Date().toLocaleString()} - <a href="https://amoy.polygonscan.com/tx/${tx.transactionHash}" target="_blank">View on Polygonscan</a>`;
                 logDebug("Pause toggled: " + (isPaused ? 'Paused' : 'Unpaused'));
+                // Update contract info
+                const balance = await contract.methods.getBalance().call();
+                contractBalance = web3.utils.fromWei(balance, 'ether');
+                document.getElementById('contract-info').innerHTML = `
+                    <p>Contract Balance: ${contractBalance}</p>
+                    <p>Total Distributed: ${web3.utils.fromWei(await contract.methods.totalDistributed().call(), 'ether')}</p>
+                    <p>Contract Status: ${isPaused ? 'Paused' : 'Unpaused'}</p>
+                `;
             } catch (error) {
                 document.getElementById('tx-status').textContent = 'Failed: ' + error.message;
                 logDebug("Toggle pause error: " + error.message);
@@ -374,24 +376,17 @@
                 const tx = await contract.methods.withdraw(web3.utils.toWei(amount, 'ether')).send({ from: userAddress });
                 document.getElementById('tx-status').innerHTML = `Success! Tx: ${tx.transactionHash} at ${new Date().toLocaleString()} - <a href="https://amoy.polygonscan.com/tx/${tx.transactionHash}" target="_blank">View on Polygonscan</a>`;
                 logDebug("Withdraw successful: " + tx.transactionHash);
+                // Update contract balance
+                const balance = await contract.methods.getBalance().call();
+                contractBalance = web3.utils.fromWei(balance, 'ether');
+                document.getElementById('contract-info').innerHTML = `
+                    <p>Contract Balance: ${contractBalance}</p>
+                    <p>Total Distributed: ${web3.utils.fromWei(await contract.methods.totalDistributed().call(), 'ether')}</p>
+                    <p>Contract Status: ${isPaused ? 'Paused' : 'Unpaused'}</p>
+                `;
             } catch (error) {
                 document.getElementById('tx-status').textContent = 'Failed: ' + error.message;
                 logDebug("Withdraw error: " + error.message);
-            }
-        }
-
-        // Check Balance
-        async function checkBalance() {
-            if (!tokenContract) return alert('Connect to contract first!');
-            const addr = document.getElementById('check-address').value || userAddress;
-            if (!web3.utils.isAddress(addr)) return alert('Invalid address!');
-            try {
-                const bal = await tokenContract.methods.balanceOf(addr).call();
-                document.getElementById('balance-result').innerHTML = `Balance: ${web3.utils.fromWei(bal, 'ether')} ${tokenSymbol}`;
-                logDebug("Balance checked for: " + addr);
-            } catch (error) {
-                logDebug("Balance check error: " + error.message);
-                alert("Error: " + error.message);
             }
         }
 
