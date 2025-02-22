@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Airdrop Contract UI</title>
-    <!-- Adjust base URL if hosted in a subdirectory, e.g., https://username.github.io/repo/ -->
-    <base href="/">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,7 +11,7 @@
             padding: 0;
             background-color: #f0f0f0;
         }
-        .app {
+        .container {
             max-width: 1200px;
             margin: 0 auto;
             padding: 20px;
@@ -37,18 +35,28 @@
             margin: 20px 0;
             text-align: center;
         }
-        nav a {
+        nav button {
             margin: 0 10px;
-            text-decoration: none;
-            color: #007bff;
-            font-weight: bold;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
         }
-        .home-page, .owner-panel, .user-panel {
+        nav button:hover {
+            background-color: #0056b3;
+        }
+        .section {
             background-color: white;
             padding: 20px;
             border-radius: 5px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.1);
             margin-bottom: 20px;
+            display: none;
+        }
+        .section.active {
+            display: block;
         }
         input, button {
             padding: 10px;
@@ -65,9 +73,6 @@
         button:hover {
             background-color: #0056b3;
         }
-        .contract-info p {
-            margin: 10px 0;
-        }
         .recipient-row {
             display: flex;
             align-items: center;
@@ -77,11 +82,16 @@
             flex: 1;
             margin-right: 10px;
         }
-        .tx-status {
+        #tx-status, #debug {
             margin-top: 20px;
             padding: 10px;
             background-color: #e9ecef;
             border-radius: 5px;
+        }
+        #debug {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
         }
         .wallet-instructions {
             margin: 10px 0;
@@ -90,15 +100,6 @@
             border: 1px solid #ffeeba;
             border-radius: 5px;
             text-align: left;
-        }
-        #debug {
-            margin: 20px;
-            padding: 10px;
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-            border-radius: 5px;
-            word-wrap: break-word;
         }
         @media (max-width: 600px) {
             .recipient-row {
@@ -111,520 +112,296 @@
     </style>
 </head>
 <body>
-    <div id="root">Loading Airdrop Contract UI...</div>
-    <div id="debug"></div>
-    <!-- Updated CDN URLs with integrity checks -->
-    <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-1jL/7WldlZOlJShotzv2wW/6tG3e8QimnzRF2yROFzhrlSR9a6WM+sjQ+VRQJ3gF" crossorigin="anonymous"></script>
-    <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-1wL/Mi7i/1N/8+V7ZxU6QBhJmsP8z6XbMVl8DArWiwV9OuYvS9yqQJhGAurxPuW2" crossorigin="anonymous"></script>
-    <script src="https://unpkg.com/react-router-dom@6.26.2/umd/react-router-dom.min.js"></script>
+    <div class="container">
+        <header>
+            <h1>Airdrop Contract UI (Polygon Amoy)</h1>
+            <div id="wallet-status">
+                <button id="connect-wallet">Connect MetaMask</button>
+                <div id="wallet-instructions" class="wallet-instructions" style="display: none;"></div>
+            </div>
+        </header>
+        <nav>
+            <button onclick="showSection('home')">Home</button>
+            <button onclick="showSection('owner')">Owner's Panel</button>
+            <button onclick="showSection('user')">User's Panel</button>
+        </nav>
+        <div id="home" class="section active">
+            <h2>Airdrop Contract Info</h2>
+            <p>Contract Address: <span id="hardcoded-address">Not Connected</span></p>
+            <div id="contract-info"></div>
+        </div>
+        <div id="owner" class="section">
+            <h2>Owner's Panel</h2>
+            <div id="airdrop-management">
+                <h3>Airdrop Management</h3>
+                <div id="recipients">
+                    <div class="recipient-row">
+                        <input type="text" placeholder="Address">
+                        <input type="number" placeholder="Amount">
+                        <button onclick="removeRecipient(this)">-</button>
+                    </div>
+                </div>
+                <button onclick="addRecipient()">+</button>
+                <p>Total: <span id="total-amount">0</span></p>
+                <button onclick="performAirdrop()">Perform Airdrop</button>
+            </div>
+            <div class="pause-unpause">
+                <h3>Contract Status</h3>
+                <p>Status: <span id="contract-status">Unknown</span></p>
+                <button onclick="togglePause()">Toggle Pause</button>
+            </div>
+            <div class="withdraw">
+                <h3>Withdraw Tokens</h3>
+                <input type="number" id="withdraw-amount" placeholder="Amount">
+                <button onclick="withdrawTokens()">Withdraw</button>
+            </div>
+            <div id="tx-status"></div>
+        </div>
+        <div id="user" class="section">
+            <h2>User's Panel</h2>
+            <input type="text" id="check-address" placeholder="Enter address (leave blank for connected wallet)">
+            <button onclick="checkBalance()">Check Balance</button>
+            <div id="balance-result"></div>
+        </div>
+        <div id="debug"></div>
+    </div>
     <script src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js" integrity="sha384-JlNqemjRV7YE+1IoEpr1rFjTKGTD6D6oH88IsFGFYMmfFI8vSDFw2NCRrYDJezBs" crossorigin="anonymous"></script>
-    <script src="https://unpkg.com/@babel/standalone@7.25.6/babel.min.js" integrity="sha384-Dtt1/8lL5wfjFGCv0cM5T4dWyPohFTYUXUS8DIm0vSB7r8sU4rW1H8qMFDmyx2rL" crossorigin="anonymous"></script>
-    <script type="text/babel">
-        // Debug function to display messages
+    <script>
+        // Debug logging
         function logDebug(message) {
             const debugDiv = document.getElementById('debug');
-            debugDiv.style.display = 'block';
             debugDiv.innerHTML += `<p>${new Date().toLocaleTimeString()} - ${message}</p>`;
         }
 
-        // Fallback if scripts fail
-        if (!window.React || !window.ReactDOM || !window.ReactRouterDOM || !window.ethers || !window.Babel) {
-            document.getElementById('root').innerHTML = '<p>Error: Required libraries failed to load. Please check your internet connection and refresh.</p>';
-            logDebug("One or more CDNs failed to load");
-        } else {
-            try {
-                const { useState, useEffect } = React;
-                const { BrowserRouter, Route, Routes, Link } = ReactRouterDOM;
-                const { ethers } = window.ethers;
+        // Hardcoded contract address (replace with your Polygon Amoy address)
+        const CONTRACT_ADDRESS = "0xa6cf75d2998785f77114f48d7f48804831dccfac"; // Replace this with your actual address
 
-                logDebug("Libraries loaded successfully");
+        // Airdrop ABI (full version from your input)
+        const AirdropABI = [
+            {"inputs":[{"internalType":"address","name":"tokenAddress","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},
+            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"address","name":"account","type":"address"}],"name":"Paused","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"address[]","name":"hunters","type":"address[]"},{"indexed":false,"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"name":"Success","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":false,"internalType":"address","name":"account","type":"address"}],"name":"Unpaused","type":"event"},
+            {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"owner","type":"address"},{"indexed":true,"internalType":"uint256","name":"amount","type":"uint256"}],"name":"Withdrawn","type":"event"},
+            {"inputs":[{"internalType":"address[]","name":"hunters","type":"address[]"},{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"name":"airdrop","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[],"name":"getBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"owner","outputs":[{"internalType":"address","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"pause","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[],"name":"paused","outputs":[{"internalType":"bool","name":"","type":"bool"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"token","outputs":[{"internalType":"contract IERC20","name":"","type":"address"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"totalDistributed","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+            {"inputs":[],"name":"unpause","outputs":[],"stateMutability":"nonpayable","type":"function"},
+            {"inputs":[{"internalType":"uint256","name":"_amount","type":"uint256"}],"name":"withdraw","outputs":[],"stateMutability":"nonpayable","type":"function"}
+        ];
 
-                const AirdropABI = [
-                    {
-                        "inputs": [{"internalType": "address", "name": "tokenAddress", "type": "address"}],
-                        "stateMutability": "nonpayable",
-                        "type": "constructor"
-                    },
-                    {
-                        "inputs": [
-                            {"internalType": "address[]", "name": "hunters", "type": "address[]"},
-                            {"internalType": "uint256[]", "name": "amounts", "type": "uint256[]"}
-                        ],
-                        "name": "airdrop",
-                        "outputs": [],
-                        "stateMutability": "nonpayable",
-                        "type": "function"
-                    },
-                    {
-                        "inputs": [],
-                        "name": "getBalance",
-                        "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-                        "stateMutability": "view",
-                        "type": "function"
-                    },
-                    {
-                        "inputs": [],
-                        "name": "owner",
-                        "outputs": [{"internalType": "address", "name": "", "type": "address"}],
-                        "stateMutability": "view",
-                        "type": "function"
-                    },
-                    {
-                        "inputs": [],
-                        "name": "pause",
-                        "outputs": [],
-                        "stateMutability": "nonpayable",
-                        "type": "function"
-                    },
-                    {
-                        "inputs": [],
-                        "name": "paused",
-                        "outputs": [{"internalType": "bool", "name": "", "type": "bool"}],
-                        "stateMutability": "view",
-                        "type": "function"
-                    },
-                    {
-                        "inputs": [],
-                        "name": "token",
-                        "outputs": [{"internalType": "contract IERC20", "name": "", "type": "address"}],
-                        "stateMutability": "view",
-                        "type": "function"
-                    },
-                    {
-                        "inputs": [],
-                        "name": "totalDistributed",
-                        "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-                        "stateMutability": "view",
-                        "type": "function"
-                    },
-                    {
-                        "inputs": [],
-                        "name": "unpause",
-                        "outputs": [],
-                        "stateMutability": "nonpayable",
-                        "type": "function"
-                    },
-                    {
-                        "inputs": [{"internalType": "uint256", "name": "_amount", "type": "uint256"}],
-                        "name": "withdraw",
-                        "outputs": [],
-                        "stateMutability": "nonpayable",
-                        "type": "function"
+        const ERC20ABI = [
+            "function name() view returns (string)",
+            "function symbol() view returns (string)",
+            "function balanceOf(address) view returns (uint256)"
+        ];
+
+        let provider, signer, contract, tokenContract, userAddress, contractBalance = '0', isPaused = false, tokenSymbol = '';
+
+        // Initialize MetaMask and connect to contract on Polygon Amoy
+        document.getElementById('connect-wallet').addEventListener('click', async () => {
+            logDebug("Connecting wallet...");
+            const isMobile = /mobile|android|iphone|ipad/.test(navigator.userAgent.toLowerCase());
+            if (window.ethereum) {
+                try {
+                    provider = new ethers.providers.Web3Provider(window.ethereum);
+                    await provider.send('eth_requestAccounts', []);
+                    signer = provider.getSigner();
+                    userAddress = await signer.getAddress();
+
+                    // Ensure Polygon Amoy network (chainId: 80002)
+                    const network = await provider.getNetwork();
+                    if (network.chainId !== 80002) {
+                        try {
+                            await window.ethereum.request({
+                                method: 'wallet_switchEthereumChain',
+                                params: [{ chainId: '0x13882' }] // Polygon Amoy chainId in hex
+                            });
+                        } catch (switchError) {
+                            if (switchError.code === 4902) {
+                                await window.ethereum.request({
+                                    method: 'wallet_addEthereumChain',
+                                    params: [{
+                                        chainId: '0x13882',
+                                        chainName: 'Polygon Amoy',
+                                        rpcUrls: ['https://rpc-amoy.polygon.technology/'],
+                                        nativeCurrency: {
+                                            name: 'MATIC',
+                                            symbol: 'MATIC',
+                                            decimals: 18
+                                        },
+                                        blockExplorerUrls: ['https://amoy.polygonscan.com/']
+                                    }]
+                                });
+                            } else {
+                                throw switchError;
+                            }
+                        }
                     }
-                ];
 
-                const ERC20ABI = [
-                    "function name() view returns (string)",
-                    "function symbol() view returns (string)",
-                    "function balanceOf(address) view returns (uint256)"
-                ];
+                    // Connect to hardcoded contract
+                    contract = new ethers.Contract(CONTRACT_ADDRESS, AirdropABI, signer);
+                    const tokenAddress = await contract.token();
+                    tokenContract = new ethers.Contract(tokenAddress, ERC20ABI, signer);
+                    const [name, symbol, balance, total, paused] = await Promise.all([
+                        tokenContract.name(),
+                        tokenContract.symbol(),
+                        contract.getBalance(),
+                        contract.totalDistributed(),
+                        contract.paused()
+                    ]);
+                    contractBalance = ethers.utils.formatEther(balance);
+                    isPaused = paused;
+                    tokenSymbol = symbol;
 
-                const AirdropTable = ({ provider, contract, contractBalance, setTxStatus }) => {
-                    const [recipients, setRecipients] = useState([{ address: '', amount: '' }]);
+                    document.getElementById('wallet-status').innerHTML = `<span>Connected: ${userAddress.slice(0, 6)}...${userAddress.slice(-4)}</span>`;
+                    document.getElementById('hardcoded-address').textContent = CONTRACT_ADDRESS;
+                    document.getElementById('contract-info').innerHTML = `
+                        <p>Token Name: ${name}</p>
+                        <p>Token Symbol: ${symbol}</p>
+                        <p>Contract Balance: ${contractBalance} ${symbol}</p>
+                        <p>Total Distributed: ${ethers.utils.formatEther(total)} ${symbol}</p>
+                        <p>Contract Status: ${paused ? 'Paused' : 'Unpaused'}</p>
+                    `;
+                    document.getElementById('contract-status').textContent = paused ? 'Paused' : 'Unpaused';
+                    document.getElementById('wallet-instructions').style.display = 'none';
+                    logDebug("Wallet connected and contract loaded: " + CONTRACT_ADDRESS);
+                } catch (error) {
+                    logDebug("Connection error: " + error.message);
+                    alert("Failed to connect: " + error.message);
+                }
+            } else if (isMobile) {
+                const currentUrl = window.location.href;
+                window.location.href = `metamask://dapp/${currentUrl}`;
+                setTimeout(() => {
+                    if (!window.ethereum) {
+                        showWalletInstructions(isMobile, currentUrl);
+                    }
+                }, 2000);
+            } else {
+                showWalletInstructions(isMobile);
+            }
+        });
 
-                    const addRecipient = () => setRecipients([...recipients, { address: '', amount: '' }]);
-                    const removeRecipient = (index) => setRecipients(recipients.filter((_, i) => i !== index));
-                    const updateRecipient = (index, field, value) => {
-                        const newRecipients = [...recipients];
-                        newRecipients[index][field] = value;
-                        setRecipients(newRecipients);
-                    };
+        function showWalletInstructions(isMobile, url = window.location.href) {
+            const instructions = document.getElementById('wallet-instructions');
+            instructions.style.display = 'block';
+            instructions.innerHTML = isMobile 
+                ? `<p>MetaMask not detected. Open this in the MetaMask app:</p>
+                   <ol><li>Install MetaMask from App Store/Google Play</li><li>Tap browser icon</li><li>Paste: <strong>${url}</strong></li></ol>`
+                : `<p>Please install MetaMask from <a href="https://metamask.io" target="_blank">metamask.io</a>.</p>`;
+            logDebug("Showing wallet instructions");
+        }
 
-                    const calculateTotal = () => recipients.reduce((sum, r) => sum + (parseFloat(r.amount) || 0), 0);
+        // Section navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+            logDebug("Showing section: " + sectionId);
+        }
 
-                    const handleAirdrop = async () => {
-                        if (!contract) return alert('Connect to contract first!');
-                        const hunters = recipients.map(r => r.address);
-                        const amounts = recipients.map(r => ethers.utils.parseEther(r.amount || '0'));
-                        const total = calculateTotal();
-                        if (total > parseFloat(contractBalance)) return alert('Total exceeds contract balance!');
-                        if (hunters.some(h => !ethers.utils.isAddress(h))) return alert('Invalid address detected!');
-                        try {
-                            setTxStatus('Pending...');
-                            const tx = await contract.airdrop(hunters, amounts);
-                            const receipt = await tx.wait();
-                            const block = await provider.getBlock(receipt.blockNumber);
-                            const explorerLink = `https://etherscan.io/tx/${tx.hash}`;
-                            setTxStatus(`Success! Tx: ${tx.hash} at ${new Date(block.timestamp * 1000).toLocaleString()} - <a href="${explorerLink}" target="_blank">View on Etherscan</a>`);
-                        } catch (error) {
-                            setTxStatus('Failed: ' + error.message);
-                            logDebug("Airdrop error: " + error.message);
-                        }
-                    };
+        // Airdrop management
+        function addRecipient() {
+            const row = document.createElement('div');
+            row.className = 'recipient-row';
+            row.innerHTML = `
+                <input type="text" placeholder="Address">
+                <input type="number" placeholder="Amount">
+                <button onclick="removeRecipient(this)">-</button>
+            `;
+            document.getElementById('recipients').appendChild(row);
+            updateTotal();
+        }
 
-                    return (
-                        <div className="airdrop-table">
-                            {recipients.map((recipient, index) => (
-                                <div key={index} className="recipient-row">
-                                    <input 
-                                        type="text" 
-                                        placeholder="Address" 
-                                        value={recipient.address} 
-                                        onChange={(e) => updateRecipient(index, 'address', e.target.value)} 
-                                    />
-                                    <input 
-                                        type="number" 
-                                        placeholder="Amount" 
-                                        value={recipient.amount} 
-                                        onChange={(e) => updateRecipient(index, 'amount', e.target.value)} 
-                                    />
-                                    <button onClick={() => removeRecipient(index)}>-</button>
-                                </div>
-                            ))}
-                            <button onClick={addRecipient}>+</button>
-                            <p>Total: {calculateTotal()}</p>
-                            <button onClick={handleAirdrop}>Perform Airdrop</button>
-                        </div>
-                    );
-                };
+        function removeRecipient(button) {
+            button.parentElement.remove();
+            updateTotal();
+        }
 
-                const HomePage = ({
-                    provider, signer, contractAddress, setContractAddress, contract, setContract,
-                    tokenContract, setTokenContract, tokenName, setTokenName, tokenSymbol, setTokenSymbol,
-                    contractBalance, setContractBalance, totalDistributed, setTotalDistributed,
-                    isPaused, setIsPaused, connected, setConnected
-                }) => {
-                    const connectToContract = async () => {
-                        if (!provider || !signer) return alert('Please connect your wallet first!');
-                        try {
-                            const contractInstance = new ethers.Contract(contractAddress, AirdropABI, signer);
-                            setContract(contractInstance);
-                            const tokenAddress = await contractInstance.token();
-                            const tokenInstance = new ethers.Contract(tokenAddress, ERC20ABI, signer);
-                            setTokenContract(tokenInstance);
+        function updateTotal() {
+            const amounts = Array.from(document.querySelectorAll('#recipients input[type="number"]'))
+                .map(input => parseFloat(input.value) || 0);
+            const total = amounts.reduce((sum, val) => sum + val, 0);
+            document.getElementById('total-amount').textContent = total;
+        }
 
-                            const [name, symbol, balance, total, paused] = await Promise.all([
-                                tokenInstance.name(),
-                                tokenInstance.symbol(),
-                                contractInstance.getBalance(),
-                                contractInstance.totalDistributed(),
-                                contractInstance.paused()
-                            ]);
-
-                            setTokenName(name);
-                            setTokenSymbol(symbol);
-                            setContractBalance(ethers.utils.formatEther(balance));
-                            setTotalDistributed(ethers.utils.formatEther(total));
-                            setIsPaused(paused);
-                            setConnected(true);
-
-                            contractInstance.on("Success", () => updateContractData());
-                            contractInstance.on("Paused", () => setIsPaused(true));
-                            contractInstance.on("Unpaused", () => setIsPaused(false));
-                            contractInstance.on("Withdrawn", () => updateContractData());
-                            logDebug("Contract connected successfully");
-                        } catch (error) {
-                            alert("Error connecting to contract: " + error.message);
-                            logDebug("Contract connection error: " + error.message);
-                        }
-                    };
-
-                    const updateContractData = async () => {
-                        if (contract) {
-                            try {
-                                const balance = await contract.getBalance();
-                                const total = await contract.totalDistributed();
-                                const paused = await contract.paused();
-                                setContractBalance(ethers.utils.formatEther(balance));
-                                setTotalDistributed(ethers.utils.formatEther(total));
-                                setIsPaused(paused);
-                            } catch (error) {
-                                logDebug("Update contract data error: " + error.message);
-                            }
-                        }
-                    };
-
-                    return (
-                        <div className="home-page">
-                            <h2>Connect to Airdrop Contract</h2>
-                            <input 
-                                type="text" 
-                                placeholder="Enter contract address" 
-                                value={contractAddress} 
-                                onChange={(e) => setContractAddress(e.target.value)} 
-                            />
-                            <button onClick={connectToContract}>Connect to Contract</button>
-                            {connected && (
-                                <div className="contract-info">
-                                    <p>Token Name: {tokenName}</p>
-                                    <p>Token Symbol: {tokenSymbol}</p>
-                                    <p>Contract Balance: {contractBalance} {tokenSymbol}</p>
-                                    <p>Total Distributed: {totalDistributed} {tokenSymbol}</p>
-                                    <p>Contract Status: {isPaused ? 'Paused' : 'Unpaused'}</p>
-                                </div>
-                            )}
-                        </div>
-                    );
-                };
-
-                const OwnerPanel = ({ provider, signer, contract, tokenContract, contractBalance, isPaused, userAddress }) => {
-                    const [withdrawAmount, setWithdrawAmount] = useState('');
-                    const [txStatus, setTxStatus] = useState('');
-
-                    const checkOwner = async () => {
-                        if (!contract || !userAddress) return false;
-                        try {
-                            const owner = await contract.owner();
-                            return owner.toLowerCase() === userAddress.toLowerCase();
-                        } catch (error) {
-                            logDebug("Check owner error: " + error.message);
-                            return false;
-                        }
-                    };
-
-                    const handlePause = async () => {
-                        try {
-                            setTxStatus('Pending...');
-                            const tx = isPaused ? await contract.unpause() : await contract.pause();
-                            const receipt = await tx.wait();
-                            const block = await provider.getBlock(receipt.blockNumber);
-                            const explorerLink = `https://etherscan.io/tx/${tx.hash}`;
-                            setTxStatus(`Success! Tx: ${tx.hash} at ${new Date(block.timestamp * 1000).toLocaleString()} - <a href="${explorerLink}" target="_blank">View on Etherscan</a>`);
-                        } catch (error) {
-                            setTxStatus('Failed: ' + error.message);
-                            logDebug("Pause/unpause error: " + error.message);
-                        }
-                    };
-
-                    const handleWithdraw = async () => {
-                        if (!withdrawAmount || parseFloat(withdrawAmount) > parseFloat(contractBalance)) return alert('Invalid amount!');
-                        try {
-                            setTxStatus('Pending...');
-                            const tx = await contract.withdraw(ethers.utils.parseEther(withdrawAmount));
-                            const receipt = await tx.wait();
-                            const block = await provider.getBlock(receipt.blockNumber);
-                            const explorerLink = `https://etherscan.io/tx/${tx.hash}`;
-                            setTxStatus(`Success! Tx: ${tx.hash} at ${new Date(block.timestamp * 1000).toLocaleString()} - <a href="${explorerLink}" target="_blank">View on Etherscan</a>`);
-                        } catch (error) {
-                            setTxStatus('Failed: ' + error.message);
-                            logDebug("Withdraw error: " + error.message);
-                        }
-                    };
-
-                    if (!checkOwner()) return <p>Only the owner can access this panel.</p>;
-
-                    return (
-                        <div className="owner-panel">
-                            <h2>Owner's Panel</h2>
-                            <div className="airdrop-management">
-                                <h3>Airdrop Management</h3>
-                                <AirdropTable provider={provider} contract={contract} contractBalance={contractBalance} setTxStatus={setTxStatus} />
-                            </div>
-                            <div className="pause-unpause">
-                                <h3>Contract Status</h3>
-                                <p>Status: {isPaused ? 'Paused' : 'Unpaused'}</p>
-                                <button onClick={handlePause}>{isPaused ? 'Unpause' : 'Pause'} Contract</button>
-                            </div>
-                            <div className="withdraw">
-                                <h3>Withdraw Tokens</h3>
-                                <input 
-                                    type="number" 
-                                    placeholder="Amount" 
-                                    value={withdrawAmount} 
-                                    onChange={(e) => setWithdrawAmount(e.target.value)} 
-                                />
-                                <button onClick={handleWithdraw}>Withdraw</button>
-                            </div>
-                            <div className="tx-status" dangerouslySetInnerHTML={{ __html: txStatus }}></div>
-                        </div>
-                    );
-                };
-
-                const UserPanel = ({ provider, signer, tokenContract, tokenSymbol }) => {
-                    const [checkAddress, setCheckAddress] = useState('');
-                    const [balance, setBalance] = useState('');
-
-                    const checkBalance = async () => {
-                        if (!tokenContract) return alert('Connect to contract first!');
-                        try {
-                            const addr = checkAddress || (await signer.getAddress());
-                            if (!ethers.utils.isAddress(addr)) return alert('Invalid address!');
-                            const bal = await tokenContract.balanceOf(addr);
-                            setBalance(ethers.utils.formatEther(bal));
-                        } catch (error) {
-                            alert('Error checking balance: ' + error.message);
-                            logDebug("Balance check error: " + error.message);
-                        }
-                    };
-
-                    return (
-                        <div className="user-panel">
-                            <h2>User's Panel</h2>
-                            <input 
-                                type="text" 
-                                placeholder="Enter address (leave blank for connected wallet)" 
-                                value={checkAddress} 
-                                onChange={(e) => setCheckAddress(e.target.value)} 
-                            />
-                            <button onClick={checkBalance}>Check Balance</button>
-                            {balance && <p>Balance: {balance} {tokenSymbol}</p>}
-                        </div>
-                    );
-                };
-
-                const App = () => {
-                    const [provider, setProvider] = useState(null);
-                    const [signer, setSigner] = useState(null);
-                    const [contractAddress, setContractAddress] = useState('');
-                    const [contract, setContract] = useState(null);
-                    const [tokenContract, setTokenContract] = useState(null);
-                    const [tokenName, setTokenName] = useState('');
-                    const [tokenSymbol, setTokenSymbol] = useState('');
-                    const [contractBalance, setContractBalance] = useState('0');
-                    const [totalDistributed, setTotalDistributed] = useState('0');
-                    const [isPaused, setIsPaused] = useState(false);
-                    const [userAddress, setUserAddress] = useState('');
-                    const [connected, setConnected] = useState(false);
-                    const [isMobile, setIsMobile] = useState(false);
-                    const [walletError, setWalletError] = useState('');
-
-                    useEffect(() => {
-                        logDebug("App initializing...");
-                        const userAgent = navigator.userAgent.toLowerCase();
-                        setIsMobile(/mobile|android|iphone|ipad/.test(userAgent));
-
-                        if (window.ethereum) {
-                            logDebug("MetaMask detected");
-                            const provider = new ethers.providers.Web3Provider(window.ethereum);
-                            setProvider(provider);
-                            window.ethereum.on('accountsChanged', (accounts) => {
-                                setUserAddress(accounts[0] || '');
-                                setWalletError('');
-                                logDebug("Account changed: " + (accounts[0] || 'None'));
-                            });
-                            window.ethereum.on('chainChanged', () => {
-                                window.location.reload();
-                                logDebug("Network changed");
-                            });
-                        } else {
-                            logDebug("No MetaMask detected");
-                            setWalletError(isMobile 
-                                ? 'MetaMask not detected. Please open this page in the MetaMask app browser.'
-                                : 'MetaMask extension not detected. Please install it from metamask.io.');
-                        }
-                    }, []);
-
-                    const connectWallet = async () => {
-                        logDebug("Connecting wallet...");
-                        if (provider) {
-                            try {
-                                await provider.send('eth_requestAccounts', []);
-                                const signer = provider.getSigner();
-                                setSigner(signer);
-                                const address = await signer.getAddress();
-                                setUserAddress(address);
-                                setWalletError('');
-                                logDebug("Wallet connected: " + address);
-                            } catch (error) {
-                                setWalletError('Failed to connect wallet: ' + error.message);
-                                logDebug("Wallet connection failed: " + error.message);
-                            }
-                        } else if (isMobile) {
-                            const currentUrl = window.location.href;
-                            const deepLink = `metamask://dapp/${currentUrl}`;
-                            logDebug("Attempting deep link: " + deepLink);
-                            window.location.href = deepLink;
-                            setTimeout(() => {
-                                if (!window.ethereum) {
-                                    setWalletError('Deep link failed. Please open this URL in the MetaMask app browser: ' + currentUrl);
-                                    logDebug("Deep link failed");
-                                }
-                            }, 2000);
-                        } else {
-                            setWalletError('Please install the MetaMask extension from metamask.io and refresh the page.');
-                            logDebug("No provider on desktop");
-                        }
-                    };
-
-                    return (
-                        <BrowserRouter>
-                            <div className="app">
-                                <header>
-                                    <h1>Airdrop Contract UI</h1>
-                                    {userAddress ? (
-                                        <span>Connected: {userAddress.slice(0, 6)}...{userAddress.slice(-4)}</span>
-                                    ) : (
-                                        <div>
-                                            <button onClick={connectWallet}>Connect MetaMask</button>
-                                            {walletError && (
-                                                <div className="wallet-instructions">
-                                                    <p>{walletError}</p>
-                                                    {isMobile && (
-                                                        <div>
-                                                            <p><strong>How to use MetaMask Mobile:</strong></p>
-                                                            <ol>
-                                                                <li>Install MetaMask from the App Store or Google Play.</li>
-                                                                <li>Open MetaMask and tap the browser icon (bottom menu).</li>
-                                                                <li>Paste this URL: <strong>{window.location.href}</strong></li>
-                                                                <li>Click "Connect MetaMask" to link your wallet.</li>
-                                                            </ol>
-                                                            <p>Or click the button above to try opening MetaMask directly.</p>
-                                                        </div>
-                                                    )}
-                                                    {!isMobile && (
-                                                        <p>Download MetaMask at <a href="https://metamask.io" target="_blank">metamask.io</a> and install it in your browser.</p>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    )}
-                                </header>
-                                <nav>
-                                    <Link to="/">Home</Link>
-                                    <Link to="/owner">Owner's Panel</Link>
-                                    <Link to="/user">User's Panel</Link>
-                                </nav>
-                                <Routes>
-                                    <Route path="/" element={<HomePage 
-                                        provider={provider} 
-                                        signer={signer} 
-                                        contractAddress={contractAddress} 
-                                        setContractAddress={setContractAddress}
-                                        contract={contract}
-                                        setContract={setContract}
-                                        tokenContract={tokenContract}
-                                        setTokenContract={setTokenContract}
-                                        tokenName={tokenName}
-                                        setTokenName={setTokenName}
-                                        tokenSymbol={tokenSymbol}
-                                        setTokenSymbol={setTokenSymbol}
-                                        contractBalance={contractBalance}
-                                        setContractBalance={setContractBalance}
-                                        totalDistributed={totalDistributed}
-                                        setTotalDistributed={setTotalDistributed}
-                                        isPaused={isPaused}
-                                        setIsPaused={setIsPaused}
-                                        connected={connected}
-                                        setConnected={setConnected}
-                                    />} />
-                                    <Route path="/owner" element={<OwnerPanel 
-                                        provider={provider} 
-                                        signer={signer} 
-                                        contract={contract} 
-                                        tokenContract={tokenContract}
-                                        contractBalance={contractBalance}
-                                        isPaused={isPaused}
-                                        userAddress={userAddress}
-                                    />} />
-                                    <Route path="/user" element={<UserPanel 
-                                        provider={provider} 
-                                        signer={signer} 
-                                        tokenContract={tokenContract}
-                                        tokenSymbol={tokenSymbol}
-                                    />} />
-                                </Routes>
-                            </div>
-                        </BrowserRouter>
-                    );
-                };
-
-                ReactDOM.render(<App />, document.getElementById('root'));
-                logDebug("App rendered successfully");
+        async function performAirdrop() {
+            if (!contract) return alert('Connect to contract first!');
+            const hunters = Array.from(document.querySelectorAll('#recipients input[type="text"]')).map(input => input.value);
+            const amounts = Array.from(document.querySelectorAll('#recipients input[type="number"]')).map(input => ethers.utils.parseEther(input.value || '0'));
+            const total = parseFloat(document.getElementById('total-amount').textContent);
+            if (total > parseFloat(contractBalance)) return alert('Total exceeds contract balance!');
+            if (hunters.some(h => !ethers.utils.isAddress(h))) return alert('Invalid address detected!');
+            try {
+                document.getElementById('tx-status').textContent = 'Pending...';
+                const tx = await contract.airdrop(hunters, amounts);
+                const receipt = await tx.wait();
+                const block = await provider.getBlock(receipt.blockNumber);
+                document.getElementById('tx-status').innerHTML = `Success! Tx: ${tx.hash} at ${new Date(block.timestamp * 1000).toLocaleString()} - <a href="https://amoy.polygonscan.com/tx/${tx.hash}" target="_blank">View on Polygonscan</a>`;
+                logDebug("Airdrop successful: " + tx.hash);
             } catch (error) {
-                document.getElementById('root').innerHTML = '<p>Failed to initialize the app. Check the debug messages below or refresh the page.</p>';
-                logDebug("Initialization error: " + error.message);
+                document.getElementById('tx-status').textContent = 'Failed: ' + error.message;
+                logDebug("Airdrop error: " + error.message);
             }
         }
+
+        // Pause/Unpause
+        async function togglePause() {
+            if (!contract) return alert('Connect to contract first!');
+            try {
+                document.getElementById('tx-status').textContent = 'Pending...';
+                const tx = isPaused ? await contract.unpause() : await contract.pause();
+                const receipt = await tx.wait();
+                isPaused = !isPaused;
+                document.getElementById('contract-status').textContent = isPaused ? 'Paused' : 'Unpaused';
+                const block = await provider.getBlock(receipt.blockNumber);
+                document.getElementById('tx-status').innerHTML = `Success! Tx: ${tx.hash} at ${new Date(block.timestamp * 1000).toLocaleString()} - <a href="https://amoy.polygonscan.com/tx/${tx.hash}" target="_blank">View on Polygonscan</a>`;
+                logDebug("Pause toggled: " + (isPaused ? 'Paused' : 'Unpaused'));
+            } catch (error) {
+                document.getElementById('tx-status').textContent = 'Failed: ' + error.message;
+                logDebug("Toggle pause error: " + error.message);
+            }
+        }
+
+        // Withdraw Tokens
+        async function withdrawTokens() {
+            if (!contract) return alert('Connect to contract first!');
+            const amount = document.getElementById('withdraw-amount').value;
+            if (!amount || parseFloat(amount) > parseFloat(contractBalance)) return alert('Invalid amount!');
+            try {
+                document.getElementById('tx-status').textContent = 'Pending...';
+                const tx = await contract.withdraw(ethers.utils.parseEther(amount));
+                const receipt = await tx.wait();
+                const block = await provider.getBlock(receipt.blockNumber);
+                document.getElementById('tx-status').innerHTML = `Success! Tx: ${tx.hash} at ${new Date(block.timestamp * 1000).toLocaleString()} - <a href="https://amoy.polygonscan.com/tx/${tx.hash}" target="_blank">View on Polygonscan</a>`;
+                logDebug("Withdraw successful: " + tx.hash);
+            } catch (error) {
+                document.getElementById('tx-status').textContent = 'Failed: ' + error.message;
+                logDebug("Withdraw error: " + error.message);
+            }
+        }
+
+        // Check Balance
+        async function checkBalance() {
+            if (!tokenContract) return alert('Connect to contract first!');
+            const addr = document.getElementById('check-address').value || userAddress;
+            if (!ethers.utils.isAddress(addr)) return alert('Invalid address!');
+            try {
+                const bal = await tokenContract.balanceOf(addr);
+                document.getElementById('balance-result').innerHTML = `Balance: ${ethers.utils.formatEther(bal)} ${tokenSymbol}`;
+                logDebug("Balance checked for: " + addr);
+            } catch (error) {
+                logDebug("Balance check error: " + error.message);
+                alert("Error: " + error.message);
+            }
+        }
+
+        // Initial debug log
+        logDebug("Page loaded");
     </script>
 </body>
 </html>
