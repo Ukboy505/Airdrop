@@ -3,36 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Airdrop Contract UI</title>
+    <title>Airdrop Dapp</title>
     <style>
-        /* Your original CSS remains unchanged - it’s functional */
-        body { font-family: 'Roboto', Arial, sans-serif; margin: 0; padding: 0; background-color: #f5f5f5; line-height: 1.6; }
-        .container { max-width: 1200px; margin: 0 auto; padding: 20px; background-color: #fff; border-radius: 10px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); }
-        header { text-align: center; padding: 20px; background-color: #007bff; color: white; border-radius: 10px 10px 0 0; margin-bottom: 20px; }
-        header button { padding: 12px 24px; background-color: #28a745; border: none; color: white; cursor: pointer; border-radius: 15px; font-size: 16px; transition: background-color 0.3s; }
-        header button:hover { background-color: #218838; }
-        nav { margin: 20px 0; text-align: center; }
-        nav button { margin: 0 10px; padding: 12px 24px; background-color: #007bff; color: white; border: none; cursor: pointer; border-radius: 15px; }
-        nav button:hover { background-color: #0056b3; }
-        .section { padding: 20px; display: none; }
-        .section.active { display: block; }
-        input, button { padding: 12px; margin: 5px; border-radius: 5px; }
-        button { background-color: #007bff; color: white; border: none; cursor: pointer; }
-        button:hover { background-color: #0056b3; }
-        .recipient-row { display: flex; align-items: center; margin-bottom: 10px; }
-        #tx-status, #error-message { margin-top: 15px; padding: 12px; background-color: #e9ecef; border-radius: 5px; }
-        #error-message.error { background-color: #f8d7da; color: #721c24; }
-        .log-content { padding: 15px; background-color: #d4edda; max-height: 200px; overflow-y: auto; display: none; }
-        .log-content.active { display: block; }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            padding: 20px;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+        }
+        header button {
+            padding: 10px 20px;
+            background-color: #28a745;
+            border: none;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        nav {
+            margin: 20px 0;
+            text-align: center;
+        }
+        nav button {
+            margin: 0 10px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        nav button:hover {
+            background-color: #0056b3;
+        }
+        .section {
+            background-color: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: none;
+        }
+        .section.active {
+            display: block;
+        }
+        input, button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .recipient-row {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        .recipient-row input {
+            flex: 1;
+            margin-right: 10px;
+        }
+        #tx-status, #debug {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #e9ecef;
+            border-radius: 5px;
+        }
+        #debug {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .wallet-instructions {
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #fff3cd;
+            border: 1px solid #ffeeba;
+            border-radius: 5px;
+            text-align: left;
+        }
+        @media (max-width: 600px) {
+            .recipient-row {
+                flex-direction: column;
+            }
+            input, button {
+                width: 100%;
+            }
+        }
+        /* New Styles */
+        .event-success { background-color: #d4edda; }
+        .event-error { background-color: #f8d7da; }
+        .card {
+            background-color: #f8f9fa;
+            border-radius: 10px;
+            box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin: 10px 0;
+        }
+        #wallet-info {
+            background-color: #007bff;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+        }
+        #wallet-instructions {
+            background-color: #e9f7ef;
+            padding: 10px;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <header>
             <h1>Airdrop Contract UI (Polygon Amoy)</h1>
-            <div class="wallet-status" id="wallet-status">
-                <button id="connect-disconnect">Connect MetaMask</button>
-                <div id="wallet-status-text" style="display: none; margin-top: 10px;"></div>
+            <div id="wallet-status">
+                <button id="connect-wallet">Connect MetaMask</button>
+                <div id="wallet-info" style="display: none;">
+                    <p id="wallet-address"></p>
+                    <p id="connection-status">Connected</p>
+                    <button id="disconnect-wallet">Disconnect</button>
+                </div>
+                <div id="wallet-instructions" class="wallet-instructions" style="display: none;"></div>
             </div>
         </header>
         <nav>
@@ -41,168 +152,287 @@
             <button onclick="showSection('user')">User's Panel</button>
         </nav>
         <div id="home" class="section active">
-            <h2>Airdrop Contract Information</h2>
-            <p>Contract Address: <span id="hardcoded-address">Not Connected</span></p>
-            <div id="contract-info"></div>
-            <div id="error-message"></div>
+            <h2>Airdrop Contract Info</h2>
+            <div id="contract-info" class="card">
+                <p id="contract-address">Contract Address: Not Connected</p>
+                <p id="contract-balance">Balance: 0 tokens</p>
+                <p id="total-distributed">Total Distributed: 0 tokens</p>
+                <p id="contract-status">Status: Unknown</p>
+            </div>
         </div>
         <div id="owner" class="section">
             <h2>Owner's Panel</h2>
             <div id="airdrop-management">
+                <h3>Airdrop Management</h3>
                 <div id="recipients">
                     <div class="recipient-row">
                         <input type="text" placeholder="Address">
-                        <input type="number" placeholder="Amount (Tokens)" step="0.1">
-                        <button onclick="removeRecipient(this)">Remove</button>
+                        <input type="number" placeholder="Amount">
+                        <button onclick="removeRecipient(this)">-</button>
                     </div>
                 </div>
-                <button onclick="addRecipient()">Add Recipient</button>
+                <button onclick="addRecipient()">+</button>
+                <p>Total: <span id="total-amount">0</span></p>
                 <button onclick="performAirdrop()">Perform Airdrop</button>
             </div>
+            <div class="pause-unpause">
+                <h3>Contract Status</h3>
+                <p>Status: <span id="contract-status">Unknown</span></p>
+                <button onclick="togglePause()">Toggle Pause</button>
+            </div>
+            <div class="withdraw">
+                <h3>Withdraw Tokens</h3>
+                <input type="number" id="withdraw-amount" placeholder="Amount">
+                <button onclick="withdrawTokens()">Withdraw</button>
+            </div>
             <div id="tx-status"></div>
-            <div id="error-message" class="error"></div>
+            <table id="owner-events">
+                <thead><tr><th>Event</th><th>Details</th><th>Timestamp</th></tr></thead>
+                <tbody></tbody>
+            </table>
         </div>
         <div id="user" class="section">
             <h2>User's Panel</h2>
-            <button onclick="checkBalance()">Check Balance</button>
-            <div id="balance-result"></div>
-            <div id="error-message" class="error"></div>
+            <p>Connect your wallet to use owner features if applicable.</p>
+            <table id="user-events">
+                <thead><tr><th>Event</th><th>Details</th><th>Timestamp</th></tr></thead>
+                <tbody></tbody>
+            </table>
         </div>
-        <div id="admin-logs" class="log-content active"></div>
+        <div id="debug"></div>
     </div>
-
-    <!-- Load Web3 with fallback -->
-    <script src="https://unpkg.com/web3@1.10.4/dist/web3.min.js" onerror="console.error('Web3 CDN failed. Please download web3.min.js locally.')"></script>
+    <script src="https://unpkg.com/web3@1.10.4/dist/web3.min.js"></script>
     <script>
-        // Ensure DOM is ready and Web3 is available
-        document.addEventListener('DOMContentLoaded', () => {
-            if (!window.Web3) {
-                logAdmin("Error: Web3 library not loaded. Check CDN or host locally.");
-                alert("Web3 library failed to load. Please check your network or use a local copy.");
-                return;
+        // Debug logging
+        function logDebug(message) {
+            const debugDiv = document.getElementById('debug');
+            debugDiv.innerHTML += `<p>${new Date().toLocaleTimeString()} - ${message}</p>`;
+        }
+
+        // Hardcoded contract address and ABI
+        const CONTRACT_ADDRESS = "0x71d8cc90b62ee78c3a9374e9a8f0ec46e34e22e5";
+        const AirdropABI = [
+            {
+                "inputs": [{"internalType": "address", "name": "tokenAddress", "type": "address"}], "stateMutability": "nonpayable", "type": "constructor"
+            },
+            {
+                "anonymous": false, "inputs": [{"indexed": false, "internalType": "address", "name": "account", "type": "address"}], "name": "Paused", "type": "event"
+            },
+            {
+                "anonymous": false, "inputs": [{"indexed": false, "internalType": "address[]", "name": "hunters", "type": "address[]"}, {"indexed": false, "internalType": "uint256[]", "name": "amounts", "type": "uint256[]"}], "name": "Success", "type": "event"
+            },
+            {
+                "anonymous": false, "inputs": [{"indexed": false, "internalType": "address", "name": "account", "type": "address"}], "name": "Unpaused", "type": "event"
+            },
+            {
+                "anonymous": false, "inputs": [{"indexed": true, "internalType": "address", "name": "owner", "type": "address"}, {"indexed": true, "internalType": "uint256", "name": "amount", "type": "uint256"}], "name": "Withdrawn", "type": "event"
+            },
+            {
+                "inputs": [{"internalType": "address[]", "name": "hunters", "type": "address[]"}, {"internalType": "uint256[]", "name": "amounts", "type": "uint256[]"}], "name": "airdrop", "outputs": [], "stateMutability": "nonpayable", "type": "function"
+            },
+            {
+                "inputs": [], "name": "getBalance", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"
+            },
+            {
+                "inputs": [], "name": "owner", "outputs": [{"internalType": "address", "name": "", "type": "address"}], "stateMutability": "view", "type": "function"
+            },
+            {
+                "inputs": [], "name": "pause", "outputs": [], "stateMutability": "nonpayable", "type": "function"
+            },
+            {
+                "inputs": [], "name": "paused", "outputs": [{"internalType": "bool", "name": "", "type": "bool"}], "stateMutability": "view", "type": "function"
+            },
+            {
+                "inputs": [], "name": "token", "outputs": [{"internalType": "contract IERC20", "name": "", "type": "address"}], "stateMutability": "view", "type": "function"
+            },
+            {
+                "inputs": [], "name": "totalDistributed", "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}], "stateMutability": "view", "type": "function"
+            },
+            {
+                "inputs": [], "name": "unpause", "outputs": [], "stateMutability": "nonpayable", "type": "function"
+            },
+            {
+                "inputs": [{"internalType": "uint256", "name": "_amount", "type": "uint256"}], "name": "withdraw", "outputs": [], "stateMutability": "nonpayable", "type": "function"
             }
+        ];
 
-            // Core variables
-            const CONTRACT_ADDRESS = "0x71d8cc90b62ee78c3a9374e9a8f0ec46e34e22e5";
-            const TOKEN_ADDRESS = "0x9a15aca3b949b057ff7c99df82675a4e3f4b553d";
-            let web3, contract, tokenContract, userAddress;
+        let web3, contract, userAddress, contractBalance = 0, isPaused = false;
 
-            // Logging function
-            function logAdmin(message) {
-                const logDiv = document.getElementById('admin-logs');
-                logDiv.innerHTML += `<p>[${new Date().toLocaleTimeString()}] ${message}</p>`;
-                logDiv.scrollTop = logDiv.scrollHeight;
-            }
+        // Wallet Connection
+        const connectWalletBtn = document.getElementById("connect-wallet");
+        const disconnectWalletBtn = document.getElementById("disconnect-wallet");
+        const walletInfo = document.getElementById("wallet-info");
+        const walletAddressElement = document.getElementById("wallet-address");
+        let currentGasPrice;
 
-            // Error display
-            function showError(section, message) {
-                const errorDiv = document.querySelector(`#${section} #error-message`) || document.getElementById('error-message');
-                errorDiv.textContent = message;
-                errorDiv.classList.add('error');
-                setTimeout(() => errorDiv.classList.remove('error'), 5000);
-                logAdmin(`Error in ${section}: ${message}`);
-            }
-
-            // Wallet connection
-            async function connectWallet() {
+        connectWalletBtn.addEventListener("click", async () => {
+            if (window.ethereum) {
                 try {
-                    if (!window.ethereum) throw new Error("MetaMask not detected");
                     web3 = new Web3(window.ethereum);
-                    await window.ethereum.request({ method: 'eth_requestAccounts' });
-                    const accounts = await web3.eth.getAccounts();
+                    const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
                     userAddress = accounts[0];
-                    const chainId = await web3.eth.getChainId();
-                    if (chainId !== 80002) {
-                        await window.ethereum.request({
-                            method: 'wallet_switchEthereumChain',
-                            params: [{ chainId: '0x13882' }]
-                        });
-                    }
-                    contract = new web3.eth.Contract([
-                        {"inputs":[{"internalType":"address","name":"tokenAddress","type":"address"}],"stateMutability":"nonpayable","type":"constructor"},
-                        {"inputs":[{"internalType":"address[]","name":"hunters","type":"address[]"},{"internalType":"uint256[]","name":"amounts","type":"uint256[]"}],"name":"airdrop","outputs":[],"stateMutability":"nonpayable","type":"function"},
-                        {"inputs":[],"name":"getBalance","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
-                    ], CONTRACT_ADDRESS);
-                    tokenContract = new web3.eth.Contract([
-                        "function symbol() view returns (string)",
-                        "function balanceOf(address) view returns (uint256)"
-                    ], TOKEN_ADDRESS);
-                    const symbol = await tokenContract.methods.symbol().call();
-                    document.getElementById('wallet-status-text').textContent = `Connected: ${userAddress}`;
-                    document.getElementById('wallet-status-text').style.display = 'block';
-                    document.getElementById('connect-disconnect').textContent = "Disconnect";
-                    document.getElementById('hardcoded-address').textContent = CONTRACT_ADDRESS;
-                    logAdmin("Wallet connected: " + userAddress);
+                    const shortAddress = `${userAddress.slice(0, 6)}...${userAddress.slice(-4)}`;
+                    walletAddressElement.textContent = `Address: ${shortAddress}`;
+                    connectWalletBtn.style.display = "none";
+                    walletInfo.style.display = "block";
+                    await loadContractInfo();
                 } catch (error) {
-                    showError('header', "Connection failed: " + error.message);
+                    console.error("Wallet connection failed:", error);
                 }
+            } else {
+                alert("Please install MetaMask!");
             }
-
-            // Disconnect wallet
-            function disconnectWallet() {
-                userAddress = null;
-                contract = null;
-                tokenContract = null;
-                document.getElementById('wallet-status-text').style.display = 'none';
-                document.getElementById('connect-disconnect').textContent = "Connect MetaMask";
-                document.getElementById('hardcoded-address').textContent = "Not Connected";
-                logAdmin("Wallet disconnected");
-            }
-
-            // Wallet button handler
-            document.getElementById('connect-disconnect').addEventListener('click', () => {
-                if (userAddress) disconnectWallet();
-                else connectWallet();
-            });
-
-            // Panel navigation
-            function showSection(sectionId) {
-                document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
-                document.getElementById(sectionId).classList.add('active');
-                logAdmin("Switched to section: " + sectionId);
-            }
-
-            // Airdrop functions
-            function addRecipient() {
-                const row = document.createElement('div');
-                row.className = 'recipient-row';
-                row.innerHTML = `<input type="text" placeholder="Address"><input type="number" placeholder="Amount (Tokens)" step="0.1"><button onclick="removeRecipient(this)">Remove</button>`;
-                document.getElementById('recipients').appendChild(row);
-            }
-
-            function removeRecipient(button) {
-                button.parentElement.remove();
-            }
-
-            async function performAirdrop() {
-                if (!contract) return showError('owner', 'Connect wallet first');
-                try {
-                    const hunters = Array.from(document.querySelectorAll('#recipients input[type="text"]')).map(input => input.value.trim());
-                    const amounts = Array.from(document.querySelectorAll('#recipients input[type="number"]')).map(input => web3.utils.toWei(input.value || "0", 'ether'));
-                    const tx = await contract.methods.airdrop(hunters, amounts).send({ from: userAddress });
-                    document.getElementById('tx-status').innerHTML = `Success! Tx: <a href="https://amoy.polygonscan.com/tx/${tx.transactionHash}" target="_blank">${tx.transactionHash}</a>`;
-                    logAdmin("Airdrop successful: " + tx.transactionHash);
-                } catch (error) {
-                    showError('owner', "Airdrop failed: " + error.message);
-                }
-            }
-
-            // Balance check
-            async function checkBalance() {
-                if (!tokenContract) return showError('user', 'Connect wallet first');
-                try {
-                    const bal = await tokenContract.methods.balanceOf(userAddress).call();
-                    const symbol = await tokenContract.methods.symbol().call();
-                    document.getElementById('balance-result').textContent = `Balance: ${web3.utils.fromWei(bal, 'ether')} ${symbol}`;
-                    logAdmin("Balance checked: " + userAddress);
-                } catch (error) {
-                    showError('user', "Balance check failed: " + error.message);
-                }
-            }
-
-            // Initial log
-            logAdmin("Page loaded successfully");
         });
+
+        disconnectWalletBtn.addEventListener("click", () => {
+            userAddress = null;
+            connectWalletBtn.style.display = "block";
+            walletInfo.style.display = "none";
+        });
+
+        // Gas Price Tracking
+        async function getCurrentGasPrice() {
+            return await web3.eth.getGasPrice();
+        }
+
+        // Contract Info Loading
+        async function loadContractInfo() {
+            contract = new web3.eth.Contract(AirdropABI, CONTRACT_ADDRESS);
+            const balance = await contract.methods.getBalance().call();
+            const totalDistributed = await contract.methods.totalDistributed().call();
+            const paused = await contract.methods.paused().call();
+            document.getElementById("contract-address").textContent = `Contract Address: ${CONTRACT_ADDRESS}`;
+            document.getElementById("contract-balance").textContent = `Balance: ${balance} tokens`;
+            document.getElementById("total-distributed").textContent = `Total Distributed: ${totalDistributed} tokens`;
+            document.getElementById("contract-status").textContent = `Status: ${paused ? "Paused" : "Active"}`;
+            contractBalance = balance;
+            isPaused = paused;
+        }
+
+        // Section Navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+        }
+
+        // Airdrop Management
+        function addRecipient() {
+            const row = document.createElement('div');
+            row.className = 'recipient-row';
+            row.innerHTML = `
+                <input type="text" placeholder="Address">
+                <input type="number" placeholder="Amount">
+                <button onclick="removeRecipient(this)">-</button>
+            `;
+            document.getElementById('recipients').appendChild(row);
+            updateTotal();
+        }
+
+        function removeRecipient(button) {
+            button.parentElement.remove();
+            updateTotal();
+        }
+
+        function updateTotal() {
+            const amounts = Array.from(document.querySelectorAll('#recipients input[type="number"]'))
+                .map(input => parseFloat(input.value) || 0);
+            const total = amounts.reduce((sum, val) => sum + val, 0);
+            document.getElementById('total-amount').textContent = total;
+        }
+
+        async function performAirdrop() {
+            if (!contract) return alert('Connect to contract first!');
+            const hunters = Array.from(document.querySelectorAll('#recipients input[type="text"]')).map(input => input.value);
+            const amounts = Array.from(document.querySelectorAll('#recipients input[type="number"]')).map(input => input.value);
+            const total = parseFloat(document.getElementById('total-amount').textContent);
+            if (total > parseFloat(contractBalance)) return alert('Total exceeds contract balance!');
+            if (hunters.some(h => !web3.utils.isAddress(h))) return alert('Invalid address detected!');
+            try {
+                document.getElementById('tx-status').textContent = 'Pending...';
+                const tx = await contract.methods.airdrop(hunters, amounts).send({ from: userAddress, gasPrice: await getCurrentGasPrice() });
+                document.getElementById('tx-status').innerHTML = `Success! Tx: <a href="https://amoy.polygonscan.com/tx/${tx.transactionHash}" target="_blank">${tx.transactionHash}</a> at ${new Date().toLocaleString()}`;
+                logDebug("Airdrop successful: " + tx.transactionHash);
+                await loadContractInfo();
+            } catch (error) {
+                document.getElementById('tx-status').textContent = 'Failed: ' + error.message;
+                logDebug("Airdrop error: " + error.message);
+            }
+        }
+
+        // Pause/Unpause
+        async function togglePause() {
+            if (!contract) return alert('Connect to contract first!');
+            try {
+                document.getElementById('tx-status').textContent = 'Pending...';
+                const method = isPaused ? contract.methods.unpause() : contract.methods.pause();
+                const tx = await method.send({ from: userAddress, gasPrice: await getCurrentGasPrice() });
+                isPaused = !isPaused;
+                document.getElementById('contract-status').textContent = isPaused ? 'Paused' : 'Unpaused';
+                document.getElementById('tx-status').innerHTML = `Success! Tx: <a href="https://amoy.polygonscan.com/tx/${tx.transactionHash}" target="_blank">${tx.transactionHash}</a> at ${new Date().toLocaleString()}`;
+                logDebug("Pause toggled: " + (isPaused ? 'Paused' : 'Unpaused'));
+                await loadContractInfo();
+            } catch (error) {
+                document.getElementById('tx-status').textContent = 'Failed: ' + error.message;
+                logDebug("Toggle pause error: " + error.message);
+            }
+        }
+
+        // Withdraw Tokens
+        async function withdrawTokens() {
+            if (!contract) return alert('Connect to contract first!');
+            const amount = document.getElementById('withdraw-amount').value;
+            if (!amount || parseFloat(amount) > parseFloat(contractBalance)) return alert('Invalid amount!');
+            try {
+                document.getElementById('tx-status').textContent = 'Pending...';
+                const tx = await contract.methods.withdraw(amount).send({ from: userAddress, gasPrice: await getCurrentGasPrice() });
+                document.getElementById('tx-status').innerHTML = `Success! Tx: <a href="https://amoy.polygonscan.com/tx/${tx.transactionHash}" target="_blank">${tx.transactionHash}</a> at ${new Date().toLocaleString()}`;
+                logDebug("Withdraw successful: " + tx.transactionHash);
+                await loadContractInfo();
+            } catch (error) {
+                document.getElementById('tx-status').textContent = 'Failed: ' + error.message;
+                logDebug("Withdraw error: " + error.message);
+            }
+        }
+
+        // Event Logging
+        function addEventToTable(tableId, eventName, details, timestamp, isSuccess) {
+            const table = document.getElementById(tableId).querySelector("tbody");
+            const row = document.createElement("tr");
+            row.className = isSuccess ? "event-success" : "event-error";
+            row.innerHTML = `<td>${eventName}</td><td>${details}</td><td>${new Date(timestamp * 1000).toLocaleString()}</td>`;
+            table.appendChild(row);
+        }
+
+        // Listen for events
+        if (contract) {
+            contract.events.Success({})
+                .on("data", (event) => {
+                    const details = `Hunters: ${event.returnValues.hunters.join(", ")}, Amounts: ${event.returnValues.amounts.join(", ")}`;
+                    addEventToTable("owner-events", "Success", details, event.blockTimestamp, true);
+                    addEventToTable("user-events", "Success", details, event.blockTimestamp, true);
+                });
+
+            contract.events.Withdrawn({})
+                .on("data", (event) => {
+                    const details = `Owner: ${event.returnValues.owner}, Amount: ${event.returnValues.amount}`;
+                    addEventToTable("owner-events", "Withdrawn", details, event.blockTimestamp, true);
+                });
+
+            contract.events.Paused({})
+                .on("data", (event) => {
+                    const details = `Paused by: ${event.returnValues.account}`;
+                    addEventToTable("owner-events", "Paused", details, event.blockTimestamp, true);
+                });
+
+            contract.events.Unpaused({})
+                .on("data", (event) => {
+                    const details = `Unpaused by: ${event.returnValues.account}`;
+                    addEventToTable("owner-events", "Unpaused", details, event.blockTimestamp, true);
+                });
+        }
+
+        // Initial debug log
+        logDebug("Page loaded");
     </script>
 </body>
 </html>
