@@ -402,6 +402,31 @@
                 const accounts = await web3.eth.getAccounts();
                 userAddress = accounts[0];
 
+                const chainId = await web3.eth.getChainId();
+                if (chainId !== 80002) {
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: '0x13882' }]
+                        });
+                    } catch (switchError) {
+                        if (switchError.code === 4902) {
+                            await window.ethereum.request({
+                                method: 'wallet_addEthereumChain',
+                                params: [{
+                                    chainId: '0x13882',
+                                    chainName: 'Polygon Amoy',
+                                    rpcUrls: ['https://rpc-amoy.polygon.technology/'],
+                                    nativeCurrency: { name: 'MATIC', symbol: 'MATIC', decimals: 18 },
+                                    blockExplorerUrls: ['https://amoy.polygonscan.com/']
+                                }]
+                            });
+                        } else {
+                            throw switchError;
+                        }
+                    }
+                }
+
                 contract = new web3.eth.Contract(AirdropABI, CONTRACT_ADDRESS);
                 tokenContract = new web3.eth.Contract(ERC20ABI, TOKEN_ADDRESS);
 
@@ -415,7 +440,7 @@
                 ]);
 
                 decimals = parseInt(tokenDecimals);
-                contractBalance = (parseInt(balance) / 10 ** decimals).toString();
+                contractBalance = (parseInt(balance) / 10 ** decimals).toFixed(2);
                 isPaused = paused;
                 tokenSymbol = symbol;
 
@@ -431,9 +456,25 @@
                     <p>Total Distributed: ${(parseInt(total) / 10 ** decimals).toFixed(2)} ${symbol}</p>
                     <p>Contract Status: ${paused ? 'Paused' : 'Unpaused'}</p>
                 `;
+                document.getElementById('contract-status').textContent = paused ? 'Paused' : 'Unpaused';
+
+                contract.events.Success({ fromBlock: 'latest' })
+                    .on('data', (event) => {
+                        const totalAmount = event.returnValues.amounts.reduce((sum, val) => sum + parseInt(val), 0) / 10 ** decimals;
+                        logAdmin('Airdrop Success', `${event.returnValues.hunters.length} recipients, Total: ${totalAmount} ${tokenSymbol}`);
+                    });
+                contract.events.Paused({ fromBlock: 'latest' })
+                    .on('data', (event) => logAdmin('Contract Paused', `By ${event.returnValues.account}`));
+                contract.events.Unpaused({ fromBlock: 'latest' })
+                    .on('data', (event) => logAdmin('Contract Unpaused', `By ${event.returnValues.account}`));
+                contract.events.Withdrawn({ fromBlock: 'latest' })
+                    .on('data', (event) => logAdmin('Withdraw', `${(parseInt(event.returnValues.amount) / 10 ** decimals).toFixed(2)} ${tokenSymbol} by ${event.returnValues.owner}`));
+
+                tokenContract.events.Transfer({ filter: { from: userAddress }, fromBlock: 'latest' })
+                    .on('data', (event) => logUser('Transfer', `${(parseInt(event.returnValues.value) / 10 ** decimals).toFixed(2)} ${tokenSymbol} to ${event.returnValues.to}`))
+                    .on('error', (error) => logUser('Transfer Error', error.message, false));
 
                 logAdmin('Wallet Connected', `Connected to ${userAddress}`);
-                updateContractInfo();
             } catch (error) {
                 logAdmin('Connection Error', error.message, false);
                 showError('home', "Failed to connect wallet: " + error.message);
@@ -449,6 +490,11 @@
             document.getElementById('disconnect-wallet').style.display = 'none';
             document.getElementById('hardcoded-address').textContent = 'Not Connected';
             document.getElementById('contract-info').innerHTML = '';
+            document.getElementById('contract-status').textContent = 'Unknown';
+            document.getElementById('tx-status').textContent = '';
+            document.getElementById('balance-result').innerHTML = '';
+            document.getElementById('admin-log-body').innerHTML = '';
+            document.getElementById('user-log-body').innerHTML = '';
             logAdmin('Wallet Disconnected', 'Disconnected successfully');
         });
 
@@ -463,6 +509,13 @@
             document.querySelectorAll('.section').forEach(section => section.classList.remove('active'));
             document.getElementById(sectionId).classList.add('active');
             logAdmin('Section Changed', `Switched to ${sectionId}`);
+        }
+
+        // Helper function to convert tokens to wei-like units safely
+        function toWeiLike(amount, decimals) {
+            const [integerPart, fractionalPart = ''] = amount.toString().split('.');
+            const paddedFraction = fractionalPart.padEnd(decimals, '0').slice(0, decimals);
+            return web3.utils.toBN(integerPart + paddedFraction);
         }
 
         // Airdrop management
@@ -507,9 +560,11 @@
             if (!contract) return showError('owner', 'Please connect your wallet first!');
             try {
                 const hunters = Array.from(document.querySelectorAll('#recipients input[type="text"]')).map(input => input.value.trim());
-                const amounts = Array.from(document.querySelectorAll('#recipients input[type="number"]')).map(input => 
-                    Math.floor((parseFloat(input.value) || 0) * 10 ** decimals).toString()
-                );
+                const amounts = Array.from(document.querySelectorAll('#recipients input[type="number"]')).map(input => {
+                    const value = parseFloat(input.value) || 0;
+                    if (isNaN(value) || value <= 0) throw new Error(`Invalid amount: ${input.value}`);
+                    return toWeiLike(value, decimals).toString();
+                });
                 const total = parseFloat(document.getElementById('total-amount').textContent);
                 if (total > parseFloat(contractBalance)) return showError('owner', 'Total exceeds contract balance');
                 if (hunters.some(h => !web3.utils.isAddress(h))) return showError('owner', 'Invalid address detected');
@@ -569,12 +624,13 @@
                 const amounts = [];
                 for (let i = 0; i < pairs.length; i += 2) {
                     const address = pairs[i];
-                    const amount = Math.floor((parseFloat(pairs[i + 1]) || 0) * 10 ** decimals).toString();
+                    const amount = parseFloat(pairs[i + 1]) || 0;
                     if (!web3.utils.isAddress(address)) throw new Error(`Invalid address: ${address}`);
+                    if (amount <= 0) throw new Error(`Invalid amount: ${amount}`);
                     hunters.push(address);
-                    amounts.push(amount);
+                    amounts.push(toWeiLike(amount, decimals).toString());
                 }
-                const total = hunters.reduce((sum, _, i) => sum + parseFloat(amounts[i]) / 10 ** decimals, 0);
+                const total = hunters.reduce((sum, _, i) => sum + parseFloat(pairs[i + 1]), 0);
                 if (total > parseFloat(contractBalance)) throw new Error('Total exceeds contract balance');
 
                 document.getElementById('tx-status').textContent = 'Pending...';
@@ -616,7 +672,7 @@
             try {
                 document.getElementById('tx-status').textContent = 'Pending...';
                 const gasPrice = await web3.eth.getGasPrice();
-                const weiAmount = Math.floor(parseFloat(amount) * 10 ** decimals).toString();
+                const weiAmount = toWeiLike(amount, decimals).toString();
                 const tx = await contract.methods.withdraw(weiAmount).send({ from: userAddress, gasPrice });
                 document.getElementById('tx-status').innerHTML = `Success! Tx: <a href="https://amoy.polygonscan.com/tx/${tx.transactionHash}" target="_blank">${tx.transactionHash}</a>`;
                 logAdmin('Withdraw Success', `Withdrew ${amount} ${tokenSymbol} - Tx: <a href="https://amoy.polygonscan.com/tx/${tx.transactionHash}" target="_blank">${tx.transactionHash}</a>`);
@@ -651,7 +707,7 @@
             if (!amount || parseFloat(amount) <= 0) return showError('user', 'Invalid amount');
             try {
                 const gasPrice = await web3.eth.getGasPrice();
-                const weiAmount = Math.floor(parseFloat(amount) * 10 ** decimals).toString();
+                const weiAmount = toWeiLike(amount, decimals).toString();
                 const tx = await tokenContract.methods.transfer(toAddress, weiAmount).send({ from: userAddress, gasPrice });
                 logUser('Transfer Success', `Transferred ${amount} ${tokenSymbol} to ${toAddress} - Tx: <a href="https://amoy.polygonscan.com/tx/${tx.transactionHash}" target="_blank">${tx.transactionHash}</a>`);
                 checkBalance();
